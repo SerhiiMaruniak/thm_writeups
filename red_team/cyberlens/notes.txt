@@ -1,0 +1,101 @@
+CyberLens
+
+1. Enumeration
+
+- This is a Windows machine.
+
+- !! NMAP SCAN !!:
+PORT      STATE SERVICE       VERSION
+135/tcp   open  msrpc         Microsoft Windows RPC
+139/tcp   open  netbios-ssn   Microsoft Windows netbios-ssn
+445/tcp   open  microsoft-ds?
+3389/tcp  open  ms-wbt-server Microsoft Terminal Services
+| rdp-ntlm-info: 
+|   Target_Name: CYBERLENS
+|   NetBIOS_Domain_Name: CYBERLENS
+|   NetBIOS_Computer_Name: CYBERLENS
+|   DNS_Domain_Name: CyberLens
+|   DNS_Computer_Name: CyberLens
+|   Product_Version: 10.0.17763
+|_  System_Time: 2026-10-11T12:00:25+00:00
+|_ssl-date: 2026-10-11T12:00:33+00:00; 0s from scanner time.
+| ssl-cert: Subject: commonName=CyberLens
+| Not valid before: 2026-10-10T11:56:38
+|_Not valid after:  2027-04-11T11:56:38
+5985/tcp  open  http          Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+|_http-title: Not Found
+|_http-server-header: Microsoft-HTTPAPI/2.0
+7680/tcp  open  pando-pub?
+47001/tcp open  http          Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+|_http-title: Not Found
+|_http-server-header: Microsoft-HTTPAPI/2.0
+49664/tcp open  msrpc         Microsoft Windows RPC
+49665/tcp open  msrpc         Microsoft Windows RPC
+49666/tcp open  msrpc         Microsoft Windows RPC
+49667/tcp open  msrpc         Microsoft Windows RPC
+49668/tcp open  msrpc         Microsoft Windows RPC
+49670/tcp open  msrpc         Microsoft Windows RPC
+49671/tcp open  msrpc         Microsoft Windows RPC
+49678/tcp open  msrpc         Microsoft Windows RPC
+
+- Directory fuzzing results:
+	* PORT 80:
+	  / :
+	  	static files
+	* PORT 5985:
+	  / :
+	  	nothing
+	* PORT 47001:
+	  / :
+	  	nothing
+
+- Based on metadata parser footprints we can identify it's approximate version:
+	"X-Parsed-By" header contains "org.apache.tika.parser.jpeg.JpegParser" that is used on 1.x only because on 2.x and later using Image module instead of jpeg parser
+	UPD: there was another opened port on which apache tika was running, in this scan it hasn't found somewhy (61777)
+	- http://cyberlens.thm:61777/version displays current apache tika running version (1.17)
+		!! Identified vulnerability for Apache Tika 1.17 !!
+		CVE-2018-1335
+
+2. Exploitation
+
+- In metasploit I found and exploit that exploits this vulnerability
+	exploit/windows/http/apache_tika_jp2_jscript
+	
+	- In metasploit I've set RHOST to the remote hostname and RPORT to the port on which apache tika server is running
+	- !! Successfully exploited !!
+	- Now it's better to upgrade the shell to meterpreter using `post/multi/manage/shell_to_meterpreter` script
+	- !! Successfully upgraded to meterpreter !!
+
+3. Post-Exploitation
+
+- LPE:
+	* Tried runnyng `getsys` but it didn't work
+	* ENV variables don't have anything interesting
+	* ConsoleHost_history doesn't have anything
+	
+	###############################################
+	#
+	#
+	#	BREAKING FINDINGS LPE
+	#
+	#
+	###############################################
+	
+	!! Misconfiguration in MSI installer !!:
+	MSI misconfuration is AlwaysInstallElevated which basically allows a low priv user to run installation as a NT-Authority/system.
+	
+		1. Generate msi installer payload through msfvenom
+		2. Upload msi file using meterpreter
+		3. Start a listener on attackbox
+		4. Run installation from shell
+- Hashdump:
+	* Doesn't work either
+	
+- Getting user flags:
+	* Inside a CyberLens directory there is a first flag
+	(C:\Users\CyberLens\Desktop\flag.txt)
+
+- RDP connection:
+	Inside CyberLens Documents folder there was another folder with his credentials and so I tried to connect using RDP because earlier I saw that he is in RDP group, so I connected successfully
+
+

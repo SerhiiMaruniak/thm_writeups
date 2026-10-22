@@ -1,0 +1,85 @@
+Room: Valley
+
+1. Enumeration
+
+- Nmap scan:
+	PORT      STATE SERVICE VERSION
+	22/tcp    open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)
+	| ssh-hostkey: 
+	|   3072 c2:84:2a:c1:22:5a:10:f1:66:16:dd:a0:f6:04:62:95 (RSA)
+	|   256 42:9e:2f:f6:3e:5a:db:51:99:62:71:c4:8c:22:3e:bb (ECDSA)
+	|_  256 2e:a0:a5:6c:d9:83:e0:01:6c:b9:8a:60:9b:63:86:72 (ED25519)
+	80/tcp    open  http    Apache httpd 2.4.41 ((Ubuntu))
+	|_http-title: Site doesn't have a title (text/html).
+	|_http-server-header: Apache/2.4.41 (Ubuntu)
+	37370/tcp open  ftp     vsftpd 3.0.3
+
+
+
+- Website source code:
+	* 2 buttons that open webpages on this site:
+		- gallery/gallery.html
+		  A page with photos which are indexed using numbers in /static/:id
+		- pricing/pricing.html
+		  Page with prices
+
+- Fuzzing:
+	* Inside /pricing dir there is a note:
+		J,
+		Please stop leaving notes randomly on the website
+		-RP
+ 	* /static/00:
+ 		dev notes from valleyDev:
+		-add wedding photo examples
+		-redo the editing on #4
+		!!! -remove /dev1243224123123 !!!
+			* Login page
+		-check for SIEM alerts
+	
+- Login page (/dev1243224123123):
+	* http://10.113.173.67/dev1243224123123/dev.js
+		- !!! Leaked creds in loginButton click listener !!!
+		(siemDev:california)
+			dev notes for ftp server:
+			-stop reusing credentials
+			-check for any vulnerabilies
+			-stay up to date on patching
+			-change ftp port to normal port
+			
+- FTP:
+	* The machine has FTP service opened on port 37370
+		ftp ftp://siemDev:california@Machine_IP:37370
+			- Three .pcapng files
+			  * siemFTP.pcapng
+			  * siemHTTP1.pcapng
+			  * siem HTTP2.pcapng
+			  
+1.1 PCAPNG analysis:
+
+	- siemFTP.pcapng:
+		* Creds that was used:
+			- anonymous:anonymous
+		* File structure:
+		    -rw-r--r--    1 0        0               0 Mar 06 13:27 AnnualReport.txt\r\n
+		    -rw-r--r--    1 0        0               0 Mar 06 13:27 BusinessReport.txt\r\n
+		    -rw-r--r--    1 0        0               0 Mar 06 13:27 CISOReport.txt\r\n
+		    -rw-r--r--    1 0        0               0 Mar 06 13:27 HrReport.txt\r\n
+		    -rw-r--r--    1 0        0               0 Mar 06 13:27 ItReport.txt\r\n
+		    -rw-r--r--    1 0        0               0 Mar 06 13:27 SecurityReport.txt\r\n
+	
+	- siemHTTP1.pcapng:
+		-
+	
+	- siemHTTP2.pcapng:
+		- POST /index.html HTTP/1.1:
+			* !!! Credentials in POST body !!!
+			  (valleyDev:ph0t0s1234)
+
+2. Exploitation:
+
+	- Use retrieved credentials from POST request to connect over SSH
+	
+2. Post-Exploitatition:
+	- Authenticator creds (liberty123:valley)
+	
+			

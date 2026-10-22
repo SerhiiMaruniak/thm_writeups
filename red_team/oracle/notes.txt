@@ -1,0 +1,66 @@
+Oracle
+
+0. AI breaching
+
+- I tried some basic AI injection prompts and they didn't work.
+UPD: One of the prompts worked, I didn't know that this is an answer*
+
+1. Enumeration
+
+Maybe this app has some vulnerabilities within the AI?
+
+- First thing that I'm going to do is scan for open ports using NMAP
+	- There are some open ports on this machine:
+	 * 22 - SSH
+	 * 80 - Page with ai chat
+	 * 5000 - HTTP page that returns 404 on /
+	 * 11434 - golang http server that returns "Ollama is running"
+	- That didn't give a lot but we can try and fuzz all HTTP pages that we've got
+
+- FUZZ ports 80, 5000, 11434 for subdirectories or files.
+	- Findings on port 80:
+	 * /message (405)
+	 	- This endpoint returns 405 for all Methods except for POST
+	- Findings on port 5000:
+	 * /status (200)
+	 	- Returns:
+		service	"Health Service"
+		status	"running"
+		uptime	"2206.90 seconds"
+	 * /health (200)
+	 	- Returns:
+		status	"healthy"
+		timestamp  1791714418.8228772
+	 * /info (200)
+	 	- Returns:
+		description	"This is the health API service."
+		service	"health_api"
+		version	"1.3.3.7"
+	- Findings on port 11434:
+	 * Nothing found.
+
+	- Still didn't help me
+	
+- Analyzing HTTP requests with burp
+	- Requests related to port 80:
+	 * GET / 
+	 	- Nothing unusual
+	 * POST /message
+	 	- Nothing unusual
+	- Requests related to port 5000:
+	 * GET /
+	 	- 404
+	 * GET /status
+	 	- Nothing unusual
+	 * GET /health
+	 	- Nothing unusual
+	 * GET /info
+	 	- Nothing unusual
+	- Requests related to port 11434:
+	 * GET /
+	 	- Nothing unusual
+	
+	- It didn't have anything interesting either. Also i can try to connect to some of this ports using netcat.
+	
+- Connecting to the ports using netcat
+	- It couldn't even connect.

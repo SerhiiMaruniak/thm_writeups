@@ -1,0 +1,44 @@
+Creative
+
+1. Enumeration
+
+- Nmap scanning revealed that there are two open ports:
+	* 22 for SSH
+	* 80 for HTTP
+
+The http page has a domain name "creative.thm". So i added to my `/etc/hosts`, maybe this CTF has subdomains.
+It has a landing page and another page "components.html"
+Two pages didn't help me at all, so now I can fuzz thorugh hidden dirs and domains.
+
+- Fuzzing on "creative.thm/":
+	* Directories:
+		- /assets (301)->(403)
+	* Files:
+		- /index.html (200)
+	* Subdomains:
+		- beta. (200) !!!
+
+2. Exploitation
+
+The beta subdomain returned 200. On "beta.creative.thm" there is a form that accepts a URL and checks if it's alive
+
+- I opened nc listener and entered my tun0 ip on the website and it simply connects to the remote url.
+	* This form has SSRF vulnerability and with the help of SSRF I enumerated all internal ports and found one opened port:
+	  - 1337
+	 
+- When i fetched `localhost:1337` from the form it returned linux filesystem (supposedly machine's filesystem). Then I build a url that goes to /home/saad/.ssh/id_rsa and copied to my system.
+It asked for a passphrase. To get a passphrase from id_rsa file I used ssh2john to convert it in john's readable format and cracked it using rockyou.txt wordlist.
+
+!!! Connected succcessfully !!!
+
+3. Post-exploitation
+
+- Grabbed first flag (user) that is located in saad's home catalog
+
+- !!! I read .bash_history file and found some saad's credentials !!!
+
+- I discovered that saad can run `/bin/ping` as a root and LD_PRELOAD env is set.
+
+- So I created an exploit in C and compiled as a library
+
+and ran `sudo LD_PRELOAD=/tmp/exploit.so /usr/bin/ping`

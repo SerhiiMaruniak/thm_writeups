@@ -1,0 +1,21 @@
+Room: Plant Photographer
+
+1. Reconnaisance:
+	- NMAP
+		* 2 port opened
+			- 80 HTTP
+			- 22 SSH
+	- Website's source:
+		- Resume download link possible IDOR:
+			* http://10.112.138.182/download?server=secure-file-storage.com:8087&id=75482342
+		- Resume PDF (metadata: nothing unusual)
+		- Admin panel (only available from localhost)
+	- Website's root fuzzing (/):
+		- download
+		- admin
+		- console (possible access point) (needs pin)
+	!! FIRST FLAG !!:
+		- I've intercepted the "download resume" request using Burp Suite
+		and changed `server` value to my local ip and started nc listener
+		then I've received a response with API key (first flag)
+	

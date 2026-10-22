@@ -1,0 +1,26 @@
+Room name: Neighbour
+
+	- This room has opened 80 port.
+
+	- On the http page it welocmes with login page that asks for username and password. But it allows to use a guest account if you don't have credentials.
+	
+	- It says "Don't have an account? Use the guest account! (Ctrl+U)"
+		* CTRL + U is a hotkey for viewing the source code.
+		
+	- In the source code there is an interesting comment:
+		* <!-- use guest:guest credentials until registration is fixed. "admin" user account is off limits!!!!! -->
+	
+	- So here we can first try to login with "guest" account.
+	
+	- After I logged in it opened a page where is only a H1 value and a log out button.
+		* I didn't see anything interesting on the page so i viewed the source code and I found a comment
+			- <!-- admin account could be vulnerable, need to update -->
+			
+	- Also I noticed that the URL has query params which can be vulnerable to IDOR.
+		* http://10.114.171.28/profile.php?user=guest
+	
+	- So if I combine all my knowledge to create an attack vector I can try to access the admin account by changing user query in the URL to "admin"
+	
+	- And yes it worked and I got the flag
+		* flag{66be95c478473d91a5358f2440c7af1f}
+	

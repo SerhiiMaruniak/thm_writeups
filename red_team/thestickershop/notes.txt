@@ -1,0 +1,5 @@
+Raft wordlist fuzzing:
+
+-Words - 0
+Dirs - 0
+Files - 0

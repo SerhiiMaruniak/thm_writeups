@@ -1,0 +1,9 @@
+Open ports:
+
+- 22 (ftp)
+- 80 (http)
+- 8080 (http-proxy)
+
+Users:
+
+- scr1ptkiddy (project_manager)

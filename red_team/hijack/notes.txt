@@ -1,0 +1,16 @@
+Hijack
+
+1. Enumeration
+
+- NMAP scan:
+	* 21 - FTP
+	* 22 - SSH
+	* 80 - http
+	* 111 - rpc
+	
+- FTP doesn't allow anon logins
+
+When I log in on the website the cookie changes to base 64 encrypted string:
+username:MD5_password
+
+Admin's password is : uDh3jCQsdcuLhjVkAy5x

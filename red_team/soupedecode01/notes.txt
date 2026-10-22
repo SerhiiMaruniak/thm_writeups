@@ -1,0 +1,41 @@
+Soupedecode 01
+
+1. Enumeration
+
+In each breach first step is to enumerate the system to know more about it so then it could help to find other attack vectors.
+
+- The first thing that I'm going to do is searching opened ports and services running on them using nmap.
+	* Now I see that this is an AD and it's open ports.
+	* Here I also identified a domain name "SOUPEDECODE.LOCAL" so I added it to the /etc/hosts
+
+- Then I wanted to see more information about DC. If it has auth enabled using SMB, is there are guests account etc...
+	* To do this I used `nxc smb` with username 'a' and empty password and got the version and name of the DC and discovered that there are guests accounts. My next step is to see if there are any opened SHARES for guests...
+	
+- To list all available shares for a specific user we can still use `nxc smb` but with `--shares` flag.
+	* There are some shares: ADMIN$, backup, C$, IPC$, NETLOGON, SYSVOL, Users. For guest account we can only read "IPC$".
+
+- When I know that I have a guest access, I can enumerate all users on AD using impackets module `lookupsid`
+
+2. Breaching
+
+- When I have all users the next thing that I want to do is spray passwords.
+	* First that I want to try as a password is the users username.
+		- I've got one valid user, I can try to move on with his creds
+		
+- After I got valid credentials I can connect to "Users" share.
+	* Inside this folder I have "Admin" folders (which are inaccessible) and "ybob317" (which is the only accessible)
+		- Inside ybob's desktop i found first flag
+
+- Getting TGS from Kerberos:
+	1. First step is to find all users that have a Registered Service Principal Name using impackets `getUserSPNs`
+		* when using this module you can even request TGS hashes by using option `--request`
+	2. When I recieved hashes I went to crack them using JtR with rockyou wordlist and got the password.
+	3. So I received the password, but I don't know whose password is that.
+		* To see whose passwords that is, I just tried logging with this password to all SPN users and got one correct. (file_svc)
+
+- When I got credentials for user "file_svc" I connected to the "backup" share and found a file named "backup_extract.txt", so I copied it on my machine
+	* In this files I found NTLM hashes from accounts like Webserver, etc...
+	* I can try accessing those accounts using Pass-The-Hash tactic
+		- I can access this user: FileServer$
+			* To access this user's shell i can use impacket's `psexec` with pass the hash
+	* Inside Administrator/Deslktop I found the last flag 
